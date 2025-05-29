@@ -33,3 +33,7 @@ logs/
 
 # Dependências
 node_modules/
+
+# tokens
+application-dev.properties
+application-prod.properties

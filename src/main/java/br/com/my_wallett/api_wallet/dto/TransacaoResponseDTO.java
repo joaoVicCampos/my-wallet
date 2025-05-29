@@ -14,5 +14,7 @@ public class TransacaoResponseDTO {
     private LocalDate data;
     private Long usuarioId;
     private String nomeUsuario;
+    private Long categoriaId;
+    private String categoriaNome;
 
 }

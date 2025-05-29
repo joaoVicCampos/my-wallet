@@ -10,6 +10,7 @@ import java.time.LocalDate;
 
 @Data
 @Entity
+@Table(name = "transacao")
 public class Transacao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,4 +33,7 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @ManyToOne(fetch = FetchType.LAZY) // --> Define que muitas transações podem pertencer apenas uma categoria.
+    @JoinColumn(name = "categoria_id", nullable = true) // --> Relacionando Transacao com Categoria, usando o categoria_id com FK.
+    private Categoria categoria;
 }

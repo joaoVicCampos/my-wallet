@@ -4,6 +4,7 @@ package br.com.my_wallett.api_wallet.controller;
 import br.com.my_wallett.api_wallet.dto.TransacaoRequestDTO;
 import br.com.my_wallett.api_wallet.dto.TransacaoResponseDTO;
 import br.com.my_wallett.api_wallet.service.TransacaoService;
+import org.aspectj.apache.bcel.generic.RET;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,18 +30,9 @@ public class TransacaoController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<List<TransacaoResponseDTO>> buscarListaTransacoes(){
-        try {
-            List<TransacaoResponseDTO> transacoesDTO = transacaoService.listarTodasTransacoes();
-            return new ResponseEntity<>(transacoesDTO, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Optional<TransacaoResponseDTO>> buscarTransacaoPorId(@PathVariable Long id){
+    public ResponseEntity<Optional<TransacaoResponseDTO>> buscarTransacaoPorId(@PathVariable Long id) {
         try {
             Optional<TransacaoResponseDTO> transacaoEncontradaDTO = transacaoService.listarTransacaoPorId(id);
             return new ResponseEntity<>(transacaoEncontradaDTO, HttpStatus.OK);
@@ -64,6 +56,45 @@ public class TransacaoController {
         try {
             boolean transacaoDeletada = transacaoService.deletarTransacao(id);
             return new ResponseEntity<>(transacaoDeletada, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<TransacaoResponseDTO>> buscarTransacaoPorUsuario(@PathVariable Long usuarioId) {
+        try {
+            List<TransacaoResponseDTO> transacoesPorUsariosDTO = transacaoService.buscarTransacaoPeloUsuario(usuarioId);
+            if (transacoesPorUsariosDTO.isEmpty()) {
+                return new ResponseEntity<>(transacoesPorUsariosDTO, HttpStatus.OK);
+            }
+            return new ResponseEntity<>(transacoesPorUsariosDTO, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/categoria/{categoriaId}")
+    public ResponseEntity<List<TransacaoResponseDTO>> buscarTransacaoPorCategoria(@PathVariable Long categoriaId) {
+        try {
+            List<TransacaoResponseDTO> transacoesPorCategoriaDTO = transacaoService.buscarTransacaoPorCategoria(categoriaId);
+            if (transacoesPorCategoriaDTO.isEmpty()) {
+                return new ResponseEntity<>(transacoesPorCategoriaDTO, HttpStatus.OK);
+            }
+            return new ResponseEntity<>(transacoesPorCategoriaDTO, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<TransacaoResponseDTO>> listarTransacoesComFiltros(
+            @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) Long categoriaId
+    ) {
+        try {
+            List<TransacaoResponseDTO> transacoesComFiltro = transacaoService.buscaComFiltros(usuarioId, categoriaId);
+            return new ResponseEntity<>(transacoesComFiltro, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

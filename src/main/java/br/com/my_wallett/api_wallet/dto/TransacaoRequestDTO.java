@@ -11,6 +11,7 @@ public class TransacaoRequestDTO {
     private String descricao;
     private TipoTransacao tipo;
     private Long usuarioId; // --> id de usuario ao qual a transação pertence
+    private Long categoriaId; // --> id para associar categorias e transações
     private LocalDate data;
 
 }
