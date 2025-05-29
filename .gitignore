@@ -1,0 +1,35 @@
+application-local.properties
+application-dev.properties
+application-prod.properties
+application-*.properties
+!application.properties
+!application-example.properties
+
+# Build artifacts
+target/
+build/
+*.jar
+*.war
+*.ear
+
+# IDEs (incluindo toda pasta .idea)
+.idea/
+*.iml
+.vscode/
+.eclipse/
+.metadata/
+
+# OS específicos
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Databases locais
+*.db
+*.sqlite
+
+# Dependências
+node_modules/
