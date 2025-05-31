@@ -4,7 +4,6 @@ import br.com.my_wallett.api_wallet.dto.CategoriaRequestDTO;
 import br.com.my_wallett.api_wallet.dto.CategoriaResponseDTO;
 import br.com.my_wallett.api_wallet.model.Categoria;
 import br.com.my_wallett.api_wallet.repository.CategoriaRepository;
-import br.com.my_wallett.api_wallet.repository.UsuarioReposiroty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

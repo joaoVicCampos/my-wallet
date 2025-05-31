@@ -3,13 +3,16 @@ package br.com.my_wallett.api_wallet.controller;
 
 import br.com.my_wallett.api_wallet.dto.TransacaoRequestDTO;
 import br.com.my_wallett.api_wallet.dto.TransacaoResponseDTO;
+import br.com.my_wallett.api_wallet.model.enums.TipoTransacao;
 import br.com.my_wallett.api_wallet.service.TransacaoService;
 import org.aspectj.apache.bcel.generic.RET;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,12 +93,17 @@ public class TransacaoController {
     @GetMapping
     public ResponseEntity<List<TransacaoResponseDTO>> listarTransacoesComFiltros(
             @RequestParam(required = false) Long usuarioId,
-            @RequestParam(required = false) Long categoriaId
-    ) {
+            @RequestParam(required = false) Long categoriaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
+            @RequestParam(required = false)TipoTransacao tipo
+            ) {
         try {
-            List<TransacaoResponseDTO> transacoesComFiltro = transacaoService.buscaComFiltros(usuarioId, categoriaId);
+            List<TransacaoResponseDTO> transacoesComFiltro = transacaoService.buscaComFiltros(usuarioId, categoriaId, dataInicio, dataFim ,tipo);
             return new ResponseEntity<>(transacoesComFiltro, HttpStatus.OK);
         } catch (Exception e) {
+            System.err.println("Erro ao listar transações com filtros: " + e.getMessage());
+            e.printStackTrace(); // <<<--- ESTA LINHA É CRUCIAL
             return ResponseEntity.badRequest().build();
         }
     }

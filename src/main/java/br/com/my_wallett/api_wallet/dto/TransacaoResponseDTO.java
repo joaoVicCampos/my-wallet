@@ -11,7 +11,8 @@ public class TransacaoResponseDTO {
     private BigDecimal valor;
     private String descricao;
     private TipoTransacao tipo;
-    private LocalDate data;
+    private LocalDate dataInicio;
+    private LocalDate dataFim;
     private Long usuarioId;
     private String nomeUsuario;
     private Long categoriaId;

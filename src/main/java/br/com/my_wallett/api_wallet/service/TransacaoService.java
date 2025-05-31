@@ -6,13 +6,17 @@ import br.com.my_wallett.api_wallet.dto.TransacaoResponseDTO;
 import br.com.my_wallett.api_wallet.model.Categoria;
 import br.com.my_wallett.api_wallet.model.Transacao;
 import br.com.my_wallett.api_wallet.model.Usuario;
+import br.com.my_wallett.api_wallet.model.enums.TipoTransacao;
 import br.com.my_wallett.api_wallet.repository.CategoriaRepository;
 import br.com.my_wallett.api_wallet.repository.TransacaoRepository;
-import br.com.my_wallett.api_wallet.repository.UsuarioReposiroty;
+import br.com.my_wallett.api_wallet.repository.UsuarioRepository;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,14 +28,14 @@ public class TransacaoService {
     TransacaoRepository transacaoRepository;
 
     @Autowired
-    UsuarioReposiroty usuarioReposiroty;
+    UsuarioRepository usuarioRepository;
 
     @Autowired
     CategoriaRepository categoriaRepository;
 
     @Transactional
     public TransacaoResponseDTO salvarTransacao(TransacaoRequestDTO transacaoRequestDTO) {
-        Usuario usuario = usuarioReposiroty.findById(transacaoRequestDTO.getUsuarioId())
+        Usuario usuario = usuarioRepository.findById(transacaoRequestDTO.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com Id" + transacaoRequestDTO.getUsuarioId()));
 
         Categoria categoria = null;
@@ -42,7 +46,8 @@ public class TransacaoService {
         Transacao transacao = new Transacao();
         transacao.setDescricao(transacaoRequestDTO.getDescricao());
         transacao.setValor(transacaoRequestDTO.getValor());
-        transacao.setData(transacaoRequestDTO.getData());
+        transacao.setDataInicio(transacaoRequestDTO.getDataInicio());
+        transacao.setDataFim(transacaoRequestDTO.getDataFim());
         transacao.setTipo(transacaoRequestDTO.getTipo());
         transacao.setUsuario(usuario);
         transacao.setCategoria(categoria);
@@ -75,7 +80,7 @@ public class TransacaoService {
         }
         Transacao transacaoExistente = transacaoOptional.get();
 
-        Usuario usuario = usuarioReposiroty.findById(transacaoRequestDTO.getUsuarioId())
+        Usuario usuario = usuarioRepository.findById(transacaoRequestDTO.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID" + transacaoRequestDTO.getUsuarioId()));
 
         Categoria categoria = null;
@@ -83,7 +88,6 @@ public class TransacaoService {
             categoria = categoriaRepository.findById(transacaoRequestDTO.getCategoriaId())
                     .orElseThrow(() -> new RuntimeException("Categoria não encontrada com ID" + transacaoRequestDTO.getCategoriaId()));
         }
-            transacaoExistente.setData(transacaoRequestDTO.getData());
             transacaoExistente.setValor(transacaoRequestDTO.getValor());
             transacaoExistente.setDescricao(transacaoRequestDTO.getDescricao());
             transacaoExistente.setTipo(transacaoRequestDTO.getTipo());
@@ -105,7 +109,7 @@ public class TransacaoService {
 
     @Transactional
     public List<TransacaoResponseDTO> buscarTransacaoPeloUsuario(Long usuarioId) {
-        if (!usuarioReposiroty.existsById(usuarioId)) {
+        if (!usuarioRepository.existsById(usuarioId)) {
             return List.of();
         }
         List<Transacao> transacoesPorUsuario = transacaoRepository.findByUsuarioId(usuarioId);
@@ -128,8 +132,19 @@ public class TransacaoService {
     }
 
     @Transactional(readOnly = true)
-    public List<TransacaoResponseDTO> buscaComFiltros(Long usuarioId, Long categoriaId){
-        List<Transacao> transacoesFiltradas = transacaoRepository.findComFiltros(usuarioId, categoriaId);
+    public List<TransacaoResponseDTO> buscaComFiltros(Long usuarioId, Long categoriaId, LocalDate dataInicio, LocalDate dataFim, TipoTransacao tipo){
+
+        String dataIninioStr = null;
+        if (dataInicio != null){
+            dataIninioStr = dataIninioStr.format(String.valueOf(DateTimeFormatter.ISO_LOCAL_DATE));
+        }
+
+        String dataFimStr = null;
+        if (dataFim != null){
+            dataFimStr = dataIninioStr.format(String.valueOf((DateTimeFormatter.ISO_LOCAL_DATE)));
+        }
+
+        List<Transacao> transacoesFiltradas = transacaoRepository.findComFiltros(usuarioId, categoriaId, dataInicio, dataFim, tipo);
         return transacoesFiltradas
                 .stream()
                 .map(this::toTransacaoResponseDTO)
@@ -141,7 +156,8 @@ public class TransacaoService {
         dto.setId(transacao.getId());
         dto.setDescricao(transacao.getDescricao());
         dto.setValor(transacao.getValor());
-        dto.setData(transacao.getData());
+        dto.setDataInicio(transacao.getDataInicio());
+        dto.setDataFim(transacao.getDataFim());
         dto.setTipo(transacao.getTipo());
         if (transacao.getUsuario() != null) {
             dto.setUsuarioId(transacao.getUsuario().getId());

@@ -4,7 +4,8 @@ package br.com.my_wallett.api_wallet.service;
 import br.com.my_wallett.api_wallet.dto.UsuarioRequestDTO;
 import br.com.my_wallett.api_wallet.dto.UsuarioResponseDTO;
 import br.com.my_wallett.api_wallet.model.Usuario;
-import br.com.my_wallett.api_wallet.repository.UsuarioReposiroty;
+import br.com.my_wallett.api_wallet.repository.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,10 @@ import java.util.stream.Collectors;
 public class UsuarioService {
 
     @Autowired
-    private UsuarioReposiroty usuarioReposiroty;
+    private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Transactional
     public UsuarioResponseDTO salvarUsuario(UsuarioRequestDTO usuarioRequestDTO) {
@@ -25,20 +29,19 @@ public class UsuarioService {
         Usuario usuario = new Usuario();
         usuario.setNome(usuarioRequestDTO.getNome());
         usuario.setEmail(usuarioRequestDTO.getEmail());
-        // senha deve ser criptografada, antes de subir para produção
-        usuario.setSenha(usuarioRequestDTO.getSenha());
-        Usuario usuarioSalvo = usuarioReposiroty.save(usuario);
+        usuario.setSenha(passwordEncoder.encode(usuarioRequestDTO.getSenha()));
+        Usuario usuarioSalvo = usuarioRepository.save(usuario);
         return toUsuarioResponseDTO(usuarioSalvo);
     }
 
     @Transactional(readOnly = true)
-    public Optional<UsuarioResponseDTO> listarUsuarioPorId(Long id) {
-        return usuarioReposiroty.findById(id).map(this::toUsuarioResponseDTO);
+    public Optional<UsuarioResponseDTO> buscarPorId(Long id) {
+        return usuarioRepository.findById(id).map(this::toUsuarioResponseDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<UsuarioResponseDTO> listarTodosUsuario() {
-        return usuarioReposiroty.findAll()
+    public List<UsuarioResponseDTO> listarTodos() {
+        return usuarioRepository.findAll()
                 .stream() // --> Transforma em fluxo de processamento
                 .map(this::toUsuarioResponseDTO)// --> mapeia cada Usuario para usar UsuarioResponseDTO
                 .collect(Collectors.toList()); // --> Coleta os resultados de volta em uma lista
@@ -46,23 +49,23 @@ public class UsuarioService {
 
     @Transactional
     public Optional<UsuarioResponseDTO> atualizarUsuario(Long id, UsuarioRequestDTO usuarioRequestDTO) {
-        return usuarioReposiroty.findById(id).map(usuarioExistente -> {
+        return usuarioRepository.findById(id).map(usuarioExistente -> {
             usuarioExistente.setNome(usuarioRequestDTO.getNome());
             usuarioExistente.setEmail(usuarioRequestDTO.getEmail());
 
             if (usuarioRequestDTO.getSenha() != null && !usuarioRequestDTO.getSenha().isEmpty()) {
-                usuarioExistente.setSenha(usuarioRequestDTO.getSenha());
+                usuarioExistente.setSenha(passwordEncoder.encode(usuarioRequestDTO.getSenha()));
             }
 
-            Usuario usuarioAtualizado = usuarioReposiroty.save(usuarioExistente);
+            Usuario usuarioAtualizado = usuarioRepository.save(usuarioExistente);
             return toUsuarioResponseDTO(usuarioAtualizado);
         });
     }
 
     @Transactional
     public boolean deletarUsuario(Long id) {
-        if (usuarioReposiroty.existsById(id)) {
-            usuarioReposiroty.deleteById(id);
+        if (usuarioRepository.existsById(id)) {
+            usuarioRepository.deleteById(id);
             return true;
         }
         return false;

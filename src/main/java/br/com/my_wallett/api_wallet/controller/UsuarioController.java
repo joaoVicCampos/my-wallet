@@ -34,7 +34,7 @@ public class UsuarioController {
     @GetMapping("/{id}")
     public ResponseEntity<Optional<UsuarioResponseDTO>> buscarUsuarioPorId(@PathVariable Long id){
         try {
-            Optional<UsuarioResponseDTO> usuarioEncontradoDTO = usuarioService.listarUsuarioPorId(id);
+            Optional<UsuarioResponseDTO> usuarioEncontradoDTO = usuarioService.buscarPorId(id);
             return new ResponseEntity<>(usuarioEncontradoDTO, HttpStatus.OK);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -44,7 +44,7 @@ public class UsuarioController {
     @GetMapping
     public ResponseEntity<List<UsuarioResponseDTO>> buscarTodosUsuarios() {
         try {
-            List<UsuarioResponseDTO> usuariosDTO = usuarioService.listarTodosUsuario();
+            List<UsuarioResponseDTO> usuariosDTO = usuarioService.listarTodos();
             return new ResponseEntity<>(usuariosDTO, HttpStatus.OK);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
