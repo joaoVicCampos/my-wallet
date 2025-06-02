@@ -41,7 +41,6 @@ public class ObjetivoService {
         objetivo.setNome(objetivoRequestDTO.getNome());
         objetivo.setValorMeta(objetivoRequestDTO.getValorMeta());
         objetivo.setDataConclusaoPrevista(objetivoRequestDTO.getDataConclusaoPrevista());
-
         objetivo.setValorAtual(BigDecimal.ZERO);
         objetivo.setDataCriacao(LocalDate.now());
         objetivo.setStatus(StatusObjetivo.PENDENTE);
@@ -94,7 +93,7 @@ public class ObjetivoService {
     }
 
     @Transactional
-    public boolean deletarObjetivo(Long id) {
+    public boolean deletarObjetivo(Long id)     {
         if (objetivoRepository.existsById(id)) {
             objetivoRepository.deleteById(id);
             return true;
