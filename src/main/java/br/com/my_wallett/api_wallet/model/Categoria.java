@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,5 +21,8 @@ public class Categoria {
 
     @Column(nullable = false, length = 100)
     private String nome;
+
+    @OneToMany(mappedBy = "categoria", fetch = FetchType.LAZY)
+    private List<Orcamento> orcamentos;
 
 }
