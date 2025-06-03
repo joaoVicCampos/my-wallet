@@ -10,7 +10,6 @@ import br.com.my_wallett.api_wallet.model.enums.TipoTransacao;
 import br.com.my_wallett.api_wallet.repository.CategoriaRepository;
 import br.com.my_wallett.api_wallet.repository.TransacaoRepository;
 import br.com.my_wallett.api_wallet.repository.UsuarioRepository;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -66,42 +65,48 @@ public class TransacaoService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<TransacaoResponseDTO> listarTransacaoPorId(Long id) {
-        return transacaoRepository.findById(id).map(this::toTransacaoResponseDTO);
+    public Optional<TransacaoResponseDTO> buscarTransacaoPorIdEUsuario(Long categoriaId, Long usuarioId) {
+        return transacaoRepository.findByIdAndUsuarioId(categoriaId, usuarioId)
+                .map(this::toTransacaoResponseDTO);
     }
 
     @Transactional
-    public Optional<TransacaoResponseDTO> atualizarTransacao(Long transacaoId, TransacaoRequestDTO transacaoRequestDTO){
+    public Optional<TransacaoResponseDTO> atualizarTransacao(Long transacaoId, TransacaoRequestDTO transacaoRequestDTO, Long usuarioIdLogado){
 
-        Optional<Transacao> transacaoOptional = transacaoRepository.findById(transacaoId);
+        Optional<Transacao> transacaoOptional = transacaoRepository.findByIdAndUsuarioId(transacaoId ,usuarioIdLogado);
 
         if (transacaoOptional.isEmpty()) {
             return Optional.empty();
         }
         Transacao transacaoExistente = transacaoOptional.get();
 
-        Usuario usuario = usuarioRepository.findById(transacaoRequestDTO.getUsuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID" + transacaoRequestDTO.getUsuarioId()));
-
         Categoria categoria = null;
-        if (transacaoRequestDTO.getCategoriaId() != null) {
+        if (transacaoRequestDTO.getCategoriaId() != null){
             categoria = categoriaRepository.findById(transacaoRequestDTO.getCategoriaId())
-                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada com ID" + transacaoRequestDTO.getCategoriaId()));
+                    .orElseThrow(() -> new RuntimeException("Categoria não encontrada com ID:" + transacaoRequestDTO.getCategoriaId()));
         }
-            transacaoExistente.setValor(transacaoRequestDTO.getValor());
-            transacaoExistente.setDescricao(transacaoRequestDTO.getDescricao());
-            transacaoExistente.setTipo(transacaoRequestDTO.getTipo());
-            transacaoExistente.setUsuario(usuario);
-            transacaoExistente.setCategoria(categoria);
 
-            Transacao transacaoAtualizada = transacaoRepository.save(transacaoExistente);
-            return Optional.of(toTransacaoResponseDTO(transacaoAtualizada));
+        if (transacaoRequestDTO.getUsuarioId() != null && !transacaoRequestDTO.getUsuarioId().equals(usuarioIdLogado)){
+            throw new IllegalArgumentException("Não é permitido alterar o usuário de uma transação existente por este método.");
+        }
+
+        transacaoExistente.setValor(transacaoRequestDTO.getValor());
+        transacaoExistente.setDescricao(transacaoRequestDTO.getDescricao());
+        transacaoExistente.setDataFim(transacaoRequestDTO.getDataFim());
+        transacaoExistente.setDataInicio(transacaoRequestDTO.getDataInicio());
+        transacaoExistente.setTipo(transacaoRequestDTO.getTipo());
+        transacaoExistente.setCategoria(categoria);
+
+        Transacao transacaoAtualizada = transacaoRepository.save(transacaoExistente);
+        return Optional.of(toTransacaoResponseDTO(transacaoAtualizada));
     }
 
     @Transactional
-    public boolean  deletarTransacao(Long id) {
-        if (transacaoRepository.existsById(id)) {
-            transacaoRepository.deleteById(id);
+    public boolean  deletarTransacao(Long transacaoId, Long usuarioIdLogado) {
+        Optional<Transacao> transacaoOptional = transacaoRepository.findByIdAndUsuarioId(transacaoId, usuarioIdLogado);
+        if (transacaoOptional.isPresent()) {
+            Transacao transacaoParaDeletar = transacaoOptional.get();
+            transacaoRepository.delete(transacaoParaDeletar);
             return true;
         }
         return false;
@@ -134,21 +139,21 @@ public class TransacaoService {
     @Transactional(readOnly = true)
     public List<TransacaoResponseDTO> buscaComFiltros(Long usuarioId, Long categoriaId, LocalDate dataInicio, LocalDate dataFim, TipoTransacao tipo){
 
-        String dataIninioStr = null;
-        if (dataInicio != null){
-            dataIninioStr = dataIninioStr.format(String.valueOf(DateTimeFormatter.ISO_LOCAL_DATE));
-        }
+        String dataInicioStr = (dataInicio != null) ? dataInicio.format(DateTimeFormatter.ISO_LOCAL_DATE) : null;
+        String dataFimStr = (dataFim != null) ? dataFim.format(DateTimeFormatter.ISO_LOCAL_DATE) : null;
+        List<Transacao> transacoesFiltradas = transacaoRepository.findComFiltros(
+                usuarioId,
+                categoriaId,
+                dataInicioStr,
+                dataFimStr,
+                tipo
+        );
 
-        String dataFimStr = null;
-        if (dataFim != null){
-            dataFimStr = dataIninioStr.format(String.valueOf((DateTimeFormatter.ISO_LOCAL_DATE)));
-        }
-
-        List<Transacao> transacoesFiltradas = transacaoRepository.findComFiltros(usuarioId, categoriaId, dataInicio, dataFim, tipo);
         return transacoesFiltradas
                 .stream()
                 .map(this::toTransacaoResponseDTO)
                 .collect(Collectors.toList());
+
     }
 
     private TransacaoResponseDTO toTransacaoResponseDTO(Transacao transacao) {

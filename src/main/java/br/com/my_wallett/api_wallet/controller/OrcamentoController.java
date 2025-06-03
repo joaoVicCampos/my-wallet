@@ -4,11 +4,16 @@ package br.com.my_wallett.api_wallet.controller;
 import br.com.my_wallett.api_wallet.dto.OrcamentoRequestoDTO;
 import br.com.my_wallett.api_wallet.dto.OrcamentoResponseDTO;
 import br.com.my_wallett.api_wallet.model.Orcamento;
+import br.com.my_wallett.api_wallet.model.Usuario;
+import br.com.my_wallett.api_wallet.repository.UsuarioRepository;
 import br.com.my_wallett.api_wallet.service.OrcamentoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.parameters.P;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,73 +27,111 @@ public class OrcamentoController {
     @Autowired
     OrcamentoService orcamentoService;
 
+    @Autowired
+    UsuarioRepository usuarioRepository;
+
     @PostMapping
-    public ResponseEntity<OrcamentoResponseDTO> criarOrcamento(@RequestBody OrcamentoRequestoDTO orcamentoRequestoDTO) {
+    public ResponseEntity<?> criarOrcamento(@RequestBody OrcamentoRequestoDTO orcamentoRequestoDTO,
+                                            @AuthenticationPrincipal UserDetails currentUser) {
         try {
-            OrcamentoResponseDTO orcamentoNovo = orcamentoService.criarOrcamento(orcamentoRequestoDTO);
-            return new ResponseEntity<>(orcamentoNovo, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            orcamentoRequestoDTO.setUsuarioId(usuarioIdLogado);
+
+            OrcamentoResponseDTO novoOrcamento = orcamentoService.criarOrcamento(orcamentoRequestoDTO);
+            return new ResponseEntity<>(novoOrcamento, HttpStatus.CREATED);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> buscOrcamentoPorId(@PathVariable Long id,
+                                                @AuthenticationPrincipal UserDetails currentUser){
+        try {
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            Optional<OrcamentoResponseDTO> orcamentoDTO = orcamentoService.buscarOrcamentoPorIdEUsuario(id, usuarioIdLogado);
+            return orcamentoDTO
+                    .map(dto -> new ResponseEntity<>(dto, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
     @GetMapping
-    public ResponseEntity<List<OrcamentoResponseDTO>> buscarOrcamentos(){
+    public ResponseEntity<?> listarOrcamentosDoUsuarioLogado(@AuthenticationPrincipal UserDetails currentUser){
         try {
-            List<OrcamentoResponseDTO> orcamentos = orcamentoService.buscarOrcamentos();
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            List<OrcamentoResponseDTO> orcamentos = orcamentoService.buscarPorUsuarioId(usuarioIdLogado);
             return new ResponseEntity<>(orcamentos, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
+
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Optional<OrcamentoResponseDTO>> buscOrcamentoPorId(@PathVariable Long id){
+    @GetMapping("/periodo")
+    public ResponseEntity<?> listarOrcamentosPorUsuarioEMesAno(@RequestParam int mes,
+                                                               @RequestParam int ano,
+                                                               @AuthenticationPrincipal UserDetails currentUser){
         try {
-            Optional<OrcamentoResponseDTO> orcamentoEncontrado = orcamentoService.buscarOrcamentoPorId(id);
-            return new ResponseEntity<>(orcamentoEncontrado, HttpStatus.OK);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<OrcamentoResponseDTO>> buscarOrcamentoPorUsuario(@PathVariable Long usuairioId){
-        try {
-            List<OrcamentoResponseDTO> orcamentoPorUsuario = orcamentoService.buscarPorUsuarioId(usuairioId);
-            return new ResponseEntity<>(orcamentoPorUsuario, HttpStatus.OK);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @GetMapping("/usuario/{usuarioId}/periodo")
-    public ResponseEntity<List<OrcamentoResponseDTO>> buscarPorUsuarioPeriodo(@PathVariable Long usuarioId, int mes, int ano){
-        try {
-            List<OrcamentoResponseDTO> orcamentoPorUsuarioPeriodo = orcamentoService.buscarPorUsuarioMesEAno(usuarioId, mes, ano);
-            return new ResponseEntity<>(orcamentoPorUsuarioPeriodo, HttpStatus.OK);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            List<OrcamentoResponseDTO> orcamentos = orcamentoService.buscarPorUsuarioMesEAno(usuarioIdLogado, mes, ano);
+            return new ResponseEntity<>(orcamentos, HttpStatus.OK);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 
     @PutMapping("/{id}")
-    private ResponseEntity<Optional<OrcamentoResponseDTO>> atualizarOrcamento(@PathVariable Long id, @RequestBody OrcamentoRequestoDTO orcamentoRequestoDTO){
+    private ResponseEntity<?> atualizarOrcamento(@PathVariable Long id,
+                                                 @RequestBody OrcamentoRequestoDTO orcamentoRequestoDTO,
+                                                 @AuthenticationPrincipal UserDetails currentUser){
         try {
-            Optional<OrcamentoResponseDTO> orcamentoAtualizado = orcamentoService.atualizarOrcamento(id, orcamentoRequestoDTO);
-            return new ResponseEntity<>(orcamentoAtualizado,HttpStatus.OK);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            orcamentoRequestoDTO.setUsuarioId(usuarioIdLogado);
+
+            Optional<OrcamentoResponseDTO> orcamentoAtualizado = orcamentoService.atualizarOrcamento(id, orcamentoRequestoDTO, usuarioIdLogado);
+            return orcamentoAtualizado
+                    .map(dto -> new ResponseEntity<>(dto, HttpStatus.OK))
+                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @DeleteMapping("/{id}")
-    private ResponseEntity<Boolean> deletarOrcamento(@PathVariable Long id){
+    private ResponseEntity<Boolean> deletarOrcamento(@PathVariable Long id,
+                                                     @AuthenticationPrincipal UserDetails currentUser){
         try {
-            Boolean orcamentoDeletado = orcamentoService.deletarOrcamento(id);
-            return new ResponseEntity<>(orcamentoDeletado, HttpStatus.OK);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            Long usuarioIdLogado = getUsuarioIdLogado(currentUser);
+            boolean deletado = orcamentoService.deletarOrcamento(id, usuarioIdLogado);
+            if (deletado) {
+                return ResponseEntity.noContent().build();
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
+
+    private Long getUsuarioIdLogado(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new SecurityException("Usuário não autenticado.");
+        }
+        String emailUsuarioLogado = userDetails.getUsername();
+        return usuarioRepository.findByEmail(emailUsuarioLogado)
+                .map(Usuario::getId)
+                .orElseThrow(() -> new RuntimeException("Usuário autenticado não encontrado no banco de dados: " + emailUsuarioLogado));
+    }
+
 }

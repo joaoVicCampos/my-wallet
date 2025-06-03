@@ -58,8 +58,8 @@ public class OrcamentoService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<OrcamentoResponseDTO> buscarOrcamentoPorId(Long id){
-        Optional<Orcamento> orcamentoEncontrado = orcamentoRepository.findById(id);
+    public Optional<OrcamentoResponseDTO> buscarOrcamentoPorIdEUsuario(Long orcamentoId, Long usuarioIdLogado){
+        Optional<Orcamento> orcamentoEncontrado = orcamentoRepository.findByIdAndUsuarioId(orcamentoId, usuarioIdLogado);
         return orcamentoEncontrado.map(this::toOrcamentoResponseDTO);
     }
 
@@ -97,22 +97,29 @@ public class OrcamentoService {
     }
 
     @Transactional
-    public Optional<OrcamentoResponseDTO> atualizarOrcamento(Long id, OrcamentoRequestoDTO orcamentoRequestoDTO){
-        return orcamentoRepository.findById(id)
+    public Optional<OrcamentoResponseDTO> atualizarOrcamento(Long orcamentoId, OrcamentoRequestoDTO orcamentoRequestoDTO, Long usuarioIdLogado){
+        return orcamentoRepository.findByIdAndUsuarioId(orcamentoId, usuarioIdLogado)
                     .map(orcamentoExistente -> {
+                        if (orcamentoRequestoDTO.getCategoriaId() != null && !orcamentoRequestoDTO.getCategoriaId().equals(orcamentoRequestoDTO.getCategoriaId())){
+                            throw new IllegalArgumentException("Não é permitido alterar a categoria de um orçamento existente.");
+                        }
+                        if (orcamentoRequestoDTO.getMes() != 0 && orcamentoRequestoDTO.getMes() != orcamentoExistente.getMes()){
+                            throw new IllegalArgumentException("Não é permitido alterar o mês de um orçamento existente.");
+                        }
+                        if (orcamentoRequestoDTO.getAno() != 0 && orcamentoRequestoDTO.getAno() != orcamentoExistente.getAno()){
+                            throw new IllegalArgumentException("Não é permitido alterar o ano de um orçamento existente.");
+                        }
                         orcamentoExistente.setLimiteMensal(orcamentoRequestoDTO.getLimiteMensal());
-                        orcamentoExistente.setMes(orcamentoRequestoDTO.getMes());
-                        orcamentoExistente.setAno(orcamentoRequestoDTO.getAno());
-
-                    Orcamento orcamentotualizado = orcamentoRepository.save(orcamentoExistente);
-                    return toOrcamentoResponseDTO(orcamentotualizado);
+                        Orcamento orcamentotualizado = orcamentoRepository.save(orcamentoExistente);
+                        return toOrcamentoResponseDTO(orcamentotualizado);
                 });
     }
 
     @Transactional
-    public boolean deletarOrcamento(Long id){
-        if (orcamentoRepository.existsById(id)){
-            orcamentoRepository.deleteById(id);
+    public boolean deletarOrcamento(Long orcamentoId, Long usuarioIdLogado){
+        Optional<Orcamento> orcamentoOptional = orcamentoRepository.findByIdAndUsuarioId(orcamentoId, usuarioIdLogado);
+        if (orcamentoOptional.isPresent()){
+            orcamentoRepository.delete(orcamentoOptional.get());
             return true;
         }
         return false;

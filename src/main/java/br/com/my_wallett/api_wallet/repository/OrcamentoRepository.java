@@ -11,4 +11,5 @@ public interface OrcamentoRepository extends JpaRepository<Orcamento, Long>, Jpa
     List<Orcamento> findByUsuarioId(Long usuarioId);
     List<Orcamento> findByUsuarioIdAndMesAndAno(Long usuarioId, int mes, int ano);
     Optional<Orcamento> findByUsuarioIdAndCategoriaIdAndMesAndAno(Long usuarioId, Long categoriaId, int mes, int ano);
+    Optional<Orcamento> findByIdAndUsuarioId(Long orcamentoId, Long usuarioId);
 }
