@@ -62,7 +62,7 @@ public class OrcamentoController {
         }
     }
 
-    @GetMapping("/usuario/{usuarioId}/period")
+    @GetMapping("/usuario/{usuarioId}/periodo")
     public ResponseEntity<List<OrcamentoResponseDTO>> buscarPorUsuarioPeriodo(@PathVariable Long usuarioId, int mes, int ano){
         try {
             List<OrcamentoResponseDTO> orcamentoPorUsuarioPeriodo = orcamentoService.buscarPorUsuarioMesEAno(usuarioId, mes, ano);

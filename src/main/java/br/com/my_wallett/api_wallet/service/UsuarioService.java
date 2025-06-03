@@ -5,17 +5,21 @@ import br.com.my_wallett.api_wallet.dto.UsuarioRequestDTO;
 import br.com.my_wallett.api_wallet.dto.UsuarioResponseDTO;
 import br.com.my_wallett.api_wallet.model.Usuario;
 import br.com.my_wallett.api_wallet.repository.UsuarioRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-public class UsuarioService {
+public class UsuarioService implements UserDetailsService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -23,9 +27,25 @@ public class UsuarioService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException{
+        Usuario usuario =  usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com o email: " + email));
+
+        return new org.springframework.security.core.userdetails.User(
+                usuario.getEmail(),
+                usuario.getSenha(),
+                new ArrayList<>()
+        );
+
+    }
+
     @Transactional
     public UsuarioResponseDTO salvarUsuario(UsuarioRequestDTO usuarioRequestDTO) {
-        // verificar email, criptografar senha
+        if (usuarioRepository.findByEmail(usuarioRequestDTO.getEmail()).isPresent()) {
+            throw new RuntimeException("Email já cadastrado: " + usuarioRequestDTO.getEmail());
+        }
         Usuario usuario = new Usuario();
         usuario.setNome(usuarioRequestDTO.getNome());
         usuario.setEmail(usuarioRequestDTO.getEmail());
